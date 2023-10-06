@@ -14,6 +14,12 @@ class Proxy(object):
         return
 
     def listen_to_connection(self):
+        '''
+        Await a client to connect. Queueing up to 10 clients.
+
+        Output:
+            current_client_info: tuple, (client_socket, client_address)
+        '''
         self.socket_listening.listen(10)
         print("The proxy is ready to receive")
         current_client_info = self.socket_listening.accept()
@@ -21,11 +27,23 @@ class Proxy(object):
         return current_client_info
     
     def receive_from(self, entity):
+        '''
+        Receive a message from an entity socket.
+
+        Input: 
+            entity: <class 'InternetEntity'>
+        '''
         self.message = entity.socket.recv(1024).decode()
         print("Proxy received from %s: %s" % (entity.address, self.message))
         return
     
     def send_to(self, entity):
+        '''
+        Send a message to an entity socket.
+        
+        Input: 
+            entity: <class 'InternetEntity'>
+        '''
         entity.socket.send(self.message.encode())
         return
     
@@ -34,17 +52,23 @@ class InternetEntity(object):
     def __init__(self, address, socket=None):
         '''
         Input:
-            address
-            socket
+            address: tuple, (ip, port)
+            socket: <class 'Socket'>, will create one if not entered
         '''
         self.address = address
-        self.socket = socket
+        if not socket:
+            import socket as s
+            self.socket = s.socket(s.AF_INET, s.SOCK_STREAM)
+        else:
+            self.socket = socket
         return
     
-    def bind_socket(self, address):
-        import socket as s
-        self.socket = s.socket(s.AF_INET, s.SOCK_STREAM)
-        self.socket.bind(address)
+    def bind_socket(self, bind_address):
+        '''
+        Input:
+            bind_address: tuple, (ip, port)
+        '''
+        self.socket.bind(bind_address)
         return
 
 if __name__ == '__main__':

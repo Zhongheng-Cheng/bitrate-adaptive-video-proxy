@@ -1,75 +1,74 @@
-import sys
-
 class Proxy(object):
-    def __init__(self, listen_port, fake_ip):
+    def __init__(self, listen_port):
         import socket as s
 
-        # binding client-end socket
+        # binding listening socket
         self.listen_address = ('', int(listen_port))
-        self.socket_to_client = s.socket(s.AF_INET, s.SOCK_STREAM)
-        self.socket_to_client.bind(self.listen_address)
-
-        # binding server-end socket
-        self.fake_address = (fake_ip, 0)
-        self.socket_to_server = s.socket(s.AF_INET, s.SOCK_STREAM)
-        self.socket_to_server.bind(self.fake_address)
+        self.socket_listening = s.socket(s.AF_INET, s.SOCK_STREAM)
+        self.socket_listening.bind(self.listen_address)
         return
 
     def connect_to_server(self, server):
-        self.socket_to_server.connect(server.address)
+        server.socket.connect(server.address)
         print("Successfully connected to server")
         return
 
     def listen_to_connection(self):
-        self.socket_to_client.listen(1)
+        self.socket_listening.listen(10)
         print("The proxy is ready to receive")
-        self.current_client_info = self.socket_to_client.accept()
-        print("Connection established with ", self.current_client_info)
+        current_client_info = self.socket_listening.accept()
+        print("Connection established with ", current_client_info)
+        return current_client_info
+    
+    def receive_from(self, entity):
+        self.message = entity.socket.recv(1024).decode()
+        print("Proxy received from %s: %s" % (entity.address, self.message))
         return
     
-    def receive_from_client(self, client):
-        self.message = client.socket.recv(1024).decode()
-        print("Proxy received from %s: %s" % (client.address, self.message))
+    def send_to(self, entity):
+        entity.socket.send(self.message.encode())
         return
     
-    def send_to_server(self):
-        proxy.socket_to_server.send(self.message.encode())
+
+class InternetEntity(object):
+    def __init__(self, address, socket=None):
+        '''
+        Input:
+            address
+            socket
+        '''
+        self.address = address
+        self.socket = socket
         return
     
-    def receive_from_server(self):
-        self.message = self.socket_to_server.recv(1024).decode()
-        print("From server: ", self.message)
-
-    def send_to_client(self, client):
-        client.socket.send(self.message.encode())
-
-class Client(object):
-    def __init__(self, client_info):
-        self.socket, self.address = client_info
-        return
-
-class Server(object):
-    def __init__(self, server_info):
-        self.address = server_info
+    def bind_socket(self, address):
+        import socket as s
+        self.socket = s.socket(s.AF_INET, s.SOCK_STREAM)
+        self.socket.bind(address)
         return
 
 if __name__ == '__main__':
+    # read input
+    import sys
     listen_port, fake_ip, server_ip = sys.argv[1:]
-    server = Server((server_ip, 8080))
-    proxy = Proxy(listen_port, fake_ip)
 
-    # establish server-end connection
+    # server and proxy init
+    proxy = Proxy(listen_port)
+    server = InternetEntity((server_ip, 8080))
+    server.bind_socket((fake_ip, 0))
+
+    # client connect and init
+    client_socket, client_address = proxy.listen_to_connection()
+    client = InternetEntity(client_address, client_socket)
+
+    # server connect
     proxy.connect_to_server(server)
-    proxy.message = "testtest" ###
 
-    # listen for client-end connection
-    proxy.listen_to_connection()
-    client = Client(proxy.current_client_info)
     while True:
-        proxy.receive_from_client(client)
-        proxy.send_to_server()
-        proxy.receive_from_server()
-        proxy.send_to_client(client)
+        proxy.receive_from(client)
+        proxy.send_to(server)
+        proxy.receive_from(server)
+        proxy.send_to(client)
         
         # connectionSocket.close()
         # print("Connection closed")

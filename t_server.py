@@ -11,6 +11,7 @@ while True:
     print("Connection established with ", clientAddress)
     for i in range(10):
         message = connectionSocket.recv(1024).decode()
+        print("Server received from %s: %s" % (clientAddress, message))
         modifiedMessage = message.upper()
         connectionSocket.send(modifiedMessage.encode())
     connectionSocket.close()

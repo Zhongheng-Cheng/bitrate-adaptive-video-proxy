@@ -8,3 +8,5 @@ print("Successfully connected")
 while True:
     message = input("Sending message: ")
     clientSocket.send(message.encode())
+    modifiedMessage = clientSocket.recv(1024)
+    print("From server: ", modifiedMessage.decode())

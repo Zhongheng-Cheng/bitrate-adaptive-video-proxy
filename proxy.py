@@ -9,6 +9,10 @@ class Proxy(object):
         return
 
     def connect_to_server(self, server):
+        '''
+        Input:
+            server: <class 'InternetEntity'>
+        '''
         server.socket.connect(server.address)
         print("Successfully connected to server")
         return
@@ -33,8 +37,11 @@ class Proxy(object):
         Input: 
             entity: <class 'InternetEntity'>
         '''
-        self.message = entity.socket.recv(1024).decode()
-        print("Proxy received from %s: %s" % (entity.address, self.message))
+        if entity.send_buffer == []:
+            entity.send_buffer.extend(entity.socket.recv(1024).decode().split('\n')[:-1])
+        self.message = entity.send_buffer[0]
+        entity.send_buffer = entity.send_buffer[1:]
+        print("Proxy received from %s: %s" % (entity.address, self.message.split('\n')))
         return
     
     def send_to(self, entity):
@@ -61,6 +68,10 @@ class InternetEntity(object):
             self.socket = s.socket(s.AF_INET, s.SOCK_STREAM)
         else:
             self.socket = socket
+        
+        # init send_buffer
+        self.send_buffer = []
+
         return
     
     def bind_socket(self, bind_address):

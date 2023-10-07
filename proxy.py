@@ -100,7 +100,7 @@ if __name__ == '__main__':
     # server connect
     proxy.connect_to_server(server_ip, fake_ip)
 
-    while True:        
+    while True:
         try:
             proxy.receive_from(proxy.client)
             proxy.send_to(proxy.server)

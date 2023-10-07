@@ -1,11 +1,11 @@
-import socket as s
+import socket
 import sys
 
 class Proxy(object):
     def __init__(self, listen_port):
         # binding listening socket
         self.listen_address = ('', int(listen_port))
-        self.socket_listening = s.socket(s.AF_INET, s.SOCK_STREAM)
+        self.socket_listening = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket_listening.bind(self.listen_address)
         return
 
@@ -18,7 +18,7 @@ class Proxy(object):
         print("Connecting to server...")
         self.server = InternetEntity((server_ip, 8080))
         self.server.bind_socket((fake_ip, 0))
-        self.server.socket.connect(self.server.address)
+        self.server.conn_socket.connect(self.server.address)
         print("Successfully connected to server.")
         return
 
@@ -45,7 +45,7 @@ class Proxy(object):
         is_end = False
         self.send_buffer = ''
         while not is_end:
-            message = entity.socket.recv(1024).decode().split('\n')
+            message = entity.conn_socket.recv(1024).decode().split('\n')
             self.send_buffer += message[0]
             if len(message) > 1:
                 is_end = True
@@ -60,22 +60,22 @@ class Proxy(object):
         Input: 
             entity: <class 'InternetEntity'>
         '''
-        entity.socket.send(self.send_buffer.encode())
+        entity.conn_socket.send(self.send_buffer.encode())
         return
     
 
 class InternetEntity(object):
-    def __init__(self, address, socket=None):
+    def __init__(self, address, conn_socket=None):
         '''
         Input:
             address: tuple, (ip, port)
-            socket: <class 'Socket'>, will create one if not entered
+            conn_socket: <class 'Socket'>, will create one if not entered
         '''
         self.address = address
-        if not socket:
-            self.socket = s.socket(s.AF_INET, s.SOCK_STREAM)
+        if not conn_socket:
+            self.conn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         else:
-            self.socket = socket
+            self.conn_socket = conn_socket
 
         return
     
@@ -84,7 +84,7 @@ class InternetEntity(object):
         Input:
             bind_address: tuple, (ip, port)
         '''
-        self.socket.bind(bind_address)
+        self.conn_socket.bind(bind_address)
         return
 
 if __name__ == '__main__':
@@ -106,13 +106,13 @@ if __name__ == '__main__':
             proxy.send_to(proxy.server)
         except:
             print("Server connection closed")
-            proxy.server.socket.close()
-            proxy.client.socket.close()
+            proxy.server.conn_socket.close()
+            proxy.client.conn_socket.close()
         
         try:
             proxy.receive_from(proxy.server)
             proxy.send_to(proxy.client)
         except:
             print("Client connection closed")
-            proxy.client.socket.close()
+            proxy.client.conn_socket.close()
             proxy.listen_to_connection()

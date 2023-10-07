@@ -1,4 +1,5 @@
 import socket as s
+import sys
 
 class Proxy(object):
     def __init__(self, listen_port):
@@ -31,7 +32,7 @@ class Proxy(object):
 
         # client connect and init
         self.client = InternetEntity(client_address, client_socket)
-        print("Connection established with ", client_socket)
+        print("Connection established with ", client_address)
         return 
     
     def receive_from(self, entity):
@@ -41,9 +42,15 @@ class Proxy(object):
         Input: 
             entity: <class 'InternetEntity'>
         '''
-
-        self.message = entity.socket.recv(1024).decode().split('\n')[0] + '\n'
-        print("Proxy received from %s: %s" % (entity.address, self.message))
+        is_end = False
+        self.send_buffer = ''
+        while not is_end:
+            message = entity.socket.recv(1024).decode().split('\n')
+            self.send_buffer += message[0]
+            if len(message) > 1:
+                is_end = True
+                self.send_buffer += '\n'
+        print("Proxy received from %s: %s" % (entity.address, self.send_buffer))
         return
     
     def send_to(self, entity):
@@ -53,7 +60,7 @@ class Proxy(object):
         Input: 
             entity: <class 'InternetEntity'>
         '''
-        entity.socket.send(self.message.encode())
+        entity.socket.send(self.send_buffer.encode())
         return
     
 
@@ -82,7 +89,6 @@ class InternetEntity(object):
 
 if __name__ == '__main__':
     # read input
-    import sys
     listen_port, fake_ip, server_ip = sys.argv[1:]
 
     # server and proxy init
@@ -98,7 +104,7 @@ if __name__ == '__main__':
         try:
             proxy.receive_from(proxy.client)
             proxy.send_to(proxy.server)
-        except s.error as e:
+        except:
             print("Server connection closed")
             proxy.server.socket.close()
             proxy.client.socket.close()
@@ -106,7 +112,7 @@ if __name__ == '__main__':
         try:
             proxy.receive_from(proxy.server)
             proxy.send_to(proxy.client)
-        except s.error as e:
+        except:
             print("Client connection closed")
             proxy.client.socket.close()
             proxy.listen_to_connection()

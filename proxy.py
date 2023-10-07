@@ -94,18 +94,19 @@ if __name__ == '__main__':
     # server connect
     proxy.connect_to_server(server_ip, fake_ip)
 
-    while True:
-        print(proxy.server.socket.getpeername())
-        print(proxy.client.socket.getpeername())
+    while True:        
         try:
             proxy.receive_from(proxy.client)
             proxy.send_to(proxy.server)
+        except s.error as e:
+            print("Server connection closed")
+            proxy.server.socket.close()
+            proxy.client.socket.close()
+        
+        try:
             proxy.receive_from(proxy.server)
             proxy.send_to(proxy.client)
-        
         except s.error as e:
-            print(e)
-            proxy.client.socket.close()
             print("Client connection closed")
-
+            proxy.client.socket.close()
             proxy.listen_to_connection()

@@ -1,34 +1,38 @@
+import socket as s
+
 class Proxy(object):
     def __init__(self, listen_port):
-        import socket as s
-
         # binding listening socket
         self.listen_address = ('', int(listen_port))
         self.socket_listening = s.socket(s.AF_INET, s.SOCK_STREAM)
         self.socket_listening.bind(self.listen_address)
         return
 
-    def connect_to_server(self, server):
+    def connect_to_server(self, server_ip, fake_ip):
         '''
         Input:
-            server: <class 'InternetEntity'>
+            server_ip: str
+            fake_ip: str
         '''
-        server.socket.connect(server.address)
-        print("Successfully connected to server")
+        print("Connecting to server...")
+        self.server = InternetEntity((server_ip, 8080))
+        self.server.bind_socket((fake_ip, 0))
+        self.server.socket.connect(self.server.address)
+        print("Successfully connected to server.")
         return
 
     def listen_to_connection(self):
         '''
         Await a client to connect. Queueing up to 10 clients.
-
-        Output:
-            current_client_info: tuple, (client_socket, client_address)
         '''
         self.socket_listening.listen(10)
-        print("The proxy is ready to receive")
-        current_client_info = self.socket_listening.accept()
-        print("Connection established with ", current_client_info)
-        return current_client_info
+        print("The proxy is ready to receive...")
+        client_socket, client_address = self.socket_listening.accept()
+
+        # client connect and init
+        self.client = InternetEntity(client_address, client_socket)
+        print("Connection established with ", client_socket)
+        return 
     
     def receive_from(self, entity):
         '''
@@ -62,7 +66,6 @@ class InternetEntity(object):
         '''
         self.address = address
         if not socket:
-            import socket as s
             self.socket = s.socket(s.AF_INET, s.SOCK_STREAM)
         else:
             self.socket = socket
@@ -84,21 +87,25 @@ if __name__ == '__main__':
 
     # server and proxy init
     proxy = Proxy(listen_port)
-    server = InternetEntity((server_ip, 8080))
-    server.bind_socket((fake_ip, 0))
-
-    # client connect and init
-    client_socket, client_address = proxy.listen_to_connection()
-    client = InternetEntity(client_address, client_socket)
+    
+    # client connect
+    proxy.listen_to_connection()
 
     # server connect
-    proxy.connect_to_server(server)
+    proxy.connect_to_server(server_ip, fake_ip)
 
     while True:
-        proxy.receive_from(client)
-        proxy.send_to(server)
-        proxy.receive_from(server)
-        proxy.send_to(client)
+        print(proxy.server.socket.getpeername())
+        print(proxy.client.socket.getpeername())
+        try:
+            proxy.receive_from(proxy.client)
+            proxy.send_to(proxy.server)
+            proxy.receive_from(proxy.server)
+            proxy.send_to(proxy.client)
         
-        # connectionSocket.close()
-        # print("Connection closed")
+        except s.error as e:
+            print(e)
+            proxy.client.socket.close()
+            print("Client connection closed")
+
+            proxy.listen_to_connection()

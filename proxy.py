@@ -1,5 +1,7 @@
+#!/usr/bin/env python3.10
 import socket
 import sys
+import time
 
 class Proxy(object):
     def __init__(self, listen_port):
@@ -15,10 +17,15 @@ class Proxy(object):
             server_ip: str
             fake_ip: str
         '''
-        print("Connecting to server...")
-        self.server = InternetEntity((server_ip, 8080))
-        self.server.bind_socket((fake_ip, 0))
-        self.server.conn_socket.connect(self.server.address)
+        while True:
+            try:
+                print("Connecting to server...")
+                self.server = InternetEntity((server_ip, 8080))
+                self.server.bind_socket((fake_ip, 0))
+                self.server.conn_socket.connect(self.server.address)
+                break
+            except Exception as e:
+                time.sleep(3)
         print("Successfully connected to server.")
         return
 
@@ -104,15 +111,11 @@ if __name__ == '__main__':
         try:
             proxy.receive_from(proxy.client)
             proxy.send_to(proxy.server)
-        except:
-            print("Server connection closed")
-            proxy.server.conn_socket.close()
-            proxy.client.conn_socket.close()
-        
-        try:
             proxy.receive_from(proxy.server)
             proxy.send_to(proxy.client)
         except:
-            print("Client connection closed")
+            print("Connection closed")
             proxy.client.conn_socket.close()
+            proxy.server.conn_socket.close()
             proxy.listen_to_connection()
+            proxy.connect_to_server(server_ip, fake_ip)

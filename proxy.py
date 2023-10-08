@@ -56,8 +56,10 @@ class Proxy(object):
         is_end = False
         self.send_buffer = ''
         while not is_end:
-            message = entity.conn_socket.recv(1024).decode().split('\n')
-            self.send_buffer += message[0]
+            message = entity.conn_socket.recv(1024).decode()
+            if message == '':
+                raise
+            self.send_buffer += message.split('\n')[0]
             if len(message) > 1:
                 is_end = True
                 self.send_buffer += '\n'

@@ -59,8 +59,9 @@ class Proxy(object):
             message = entity.conn_socket.recv(1024).decode()
             if message == '':
                 raise
-            self.send_buffer += message.split('\n')[0]
-            if len(message) > 1:
+            message_list = message.split('\n')
+            self.send_buffer += message_list[0]
+            if len(message_list) > 1:
                 is_end = True
                 self.send_buffer += '\n'
         print("Proxy received from %s: %s" % (entity.address, self.send_buffer))

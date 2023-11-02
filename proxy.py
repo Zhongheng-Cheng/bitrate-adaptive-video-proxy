@@ -4,20 +4,16 @@ import sys
 import time
 
 class Proxy(object):
-    def __init__(self, listen_port):
+    def __init__(self, listen_port: str):
         # binding listening socket
         self.listen_address = ('', int(listen_port))
         self.socket_listening = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket_listening.bind(self.listen_address)
         return
 
-    def connect_to_server(self, server_ip, fake_ip):
+    def connect_to_server(self, server_ip: str, fake_ip: str):
         '''
         Continuously try to connect server at 1 second interval.
-
-        Input:
-            server_ip: str
-            fake_ip: str
         '''
         print("Connecting to server...")
         while True:
@@ -79,7 +75,7 @@ class Proxy(object):
     
 
 class InternetEntity(object):
-    def __init__(self, address, conn_socket=None):
+    def __init__(self, address: tuple, conn_socket=None):
         '''
         Input:
             address: tuple, (ip, port)

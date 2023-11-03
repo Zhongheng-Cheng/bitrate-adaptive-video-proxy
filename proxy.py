@@ -27,8 +27,10 @@ class Proxy(object):
                 self.server.bind_socket((fake_ip, 0))
                 self.server.conn_socket.connect(self.server.address)
                 break
-            except Exception as e:
+            except ConnectionRefusedError:
                 time.sleep(1)
+            except Exception as e:
+                print(e)
         print("Successfully connected to server.")
         return
 

@@ -1,4 +1,4 @@
-class Logging(object):
+class Logger(object):
     def __init__(self, filepath):
         '''
         Proxy logging: <time> <duration> <tput> <avg-tput> <bitrate> <server-ip> <chunkname>

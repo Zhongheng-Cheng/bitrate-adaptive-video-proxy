@@ -5,12 +5,10 @@ import sys
 class DNSServer(object):
     def __init__(self):
         self.DNS_RECORDS = {
-            'example.com': '192.168.1.100',
-            'google.com': '8.8.8.8',
-            'video.columbia.edu': '....',
+            'video.columbia.edu': 'x.x.x.x', # point to the "best" server's ip
         }
         topo_dir, log_path, listen_port, decision_method = self.get_inputs()
-        self.server_socket = self.listen_to_udp(listen_port)
+        self.server_socket = self.listen_to_connection(int(listen_port))
         return
     
     def get_inputs(self):
@@ -51,3 +49,7 @@ class DNSServer(object):
             data = data.decode()
             print(f"Received DNS request from {client_address}: {data}")
             self.handle_dns_request(data, client_address)
+
+if __name__ == '__main__':
+    dns_server = DNSServer()
+    dns_server.serve()

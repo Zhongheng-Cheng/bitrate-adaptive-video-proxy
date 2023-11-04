@@ -64,26 +64,6 @@ class Proxy(object):
         print(f"Connection established with {client_address}.")
         return 
     
-    def receive_from(self, conn):
-        '''
-        Receive a message from an conn's socket.
-        Input: 
-            conn: <class 'Connection'>
-        '''
-        self.message = conn.conn_socket.recv(4096).decode()
-        print(f"Proxy received from {conn.address}: {self.message}")
-        return self.message
-    
-    def send_to(self, conn):
-        '''
-        Send a message to an conn's socket.
-        
-        Input: 
-            conn: <class 'Connection'>
-        '''
-        conn.conn_socket.send(self.message.encode())
-        return
-    
     def server(self):
         # connect client and then server
         self.listen_to_connection(self.listen_port)
@@ -134,6 +114,22 @@ class Connection(object):
         '''
         self.conn_socket.bind(bind_address)
         return
+    
+    def receive(self):
+        '''
+        Receive a message from conn_socket.
+        '''
+        message = self.conn_socket.recv(4096).decode()
+        print(f"Proxy received from {self.address}: {message}")
+        return message
+    
+    def send(self, message):
+        '''
+        Send a message to conn_socket.
+        '''
+        self.conn_socket.send(message.encode())
+        return
+
 
 class DnsRequest(object):
     def __init__(self, dns_server_ip, dns_server_port, cname):

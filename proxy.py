@@ -17,57 +17,16 @@ class Proxy(object):
                  fake_ip: str = None,
                  logging = None,
                  alpha: int = None):
-        self.listen_port = listen_port
-        self.server_ip = server_ip
-        self.server_port = server_port
-        self.fake_ip = fake_ip
+        
         self.logging = logging
         self.alpha = alpha
+        self.client_conn = Connection()
+        self.client_conn.listen_to_connection(listen_port)
+        self.server_conn = Connection()
+        self.server_conn.connect_to_server(server_ip, server_port, fake_ip)
         return
-
-    def connect_to_server(self, server_ip: str, server_port: int, fake_ip: str):
-        '''
-        Continuously try to connect server at 1 second interval.
-        '''
-        assert server_ip and server_port, "server_ip and server_port should not be None."
-        print("Connecting to server...")
-        while True:
-            try:
-                self.server = Connection((server_ip, server_port))
-                if fake_ip:
-                    self.server.bind_socket((fake_ip, 0))
-                self.server.conn_socket.connect(self.server.address)
-                break
-            except ConnectionRefusedError:
-                time.sleep(1)
-            except Exception as e:
-                print(e)
-        print("Successfully connected to server.")
-        return
-
-    def listen_to_connection(self, listen_port: int):
-        '''
-        Await a client to connect. Queueing up to 10 clients.
-        '''
-        # binding listening socket
-        listen_address = ('0.0.0.0', listen_port)
-        socket_listening = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        socket_listening.bind(listen_address)
-        
-        # listen for client connection
-        socket_listening.listen(10)
-        print("The proxy is ready to receive...")
-        client_socket, client_address = socket_listening.accept()
-
-        # client connect and init
-        self.client = Connection(client_address, client_socket)
-        print(f"Connection established with {client_address}.")
-        return 
     
-    def server(self):
-        # connect client and then server
-        self.listen_to_connection(self.listen_port)
-        self.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
+    def serve(self):
 
         while True:
             # try:
@@ -88,25 +47,15 @@ class Proxy(object):
             #     proxy.listen_to_connection()
             #     proxy.connect_to_server(server_ip, fake_ip)
 
-            self.receive_from(self.client)
+            message = self.client_conn.receive()
             print("========")
-            self.send_to(self.server)
+            self.server_conn.send(message)
     
 
 class Connection(object):
-    def __init__(self, address: tuple, conn_socket=None):
-        '''
-        Input:
-            address: tuple, (ip, port)
-            conn_socket: <class 'Socket'>, will create one if not entered
-        '''
-        self.address = address
-        if not conn_socket:
-            self.conn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        else:
-            self.conn_socket = conn_socket
-        return
-    
+    def __init__(self):
+        pass
+
     def bind_socket(self, bind_address):
         '''
         Input:
@@ -129,6 +78,46 @@ class Connection(object):
         '''
         self.conn_socket.send(message.encode())
         return
+    
+    def connect_to_server(self, server_ip: str, server_port: int, fake_ip: str):
+        '''
+        Continuously try to connect server at 1 second interval.
+        '''
+        print("Connecting to server...")
+        while True:
+            try:
+                self.conn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                if fake_ip:
+                    self.bind_socket((fake_ip, 0))
+                self.address = (server_ip, server_port)
+                self.conn_socket.connect(self.address)
+                break
+            except ConnectionRefusedError:
+                time.sleep(1)
+            except Exception as e:
+                print(e)
+        print("Successfully connected to server.")
+        return
+    
+    def listen_to_connection(self, listen_port: int):
+        '''
+        Await a client to connect. Queueing up to 10 clients.
+        '''
+        # binding listening socket
+        listen_address = ('', listen_port)
+        socket_listening = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        socket_listening.bind(listen_address)
+        
+        # listen for client connection
+        socket_listening.listen(10)
+        print("The proxy is ready to receive...")
+        client_socket, client_address = socket_listening.accept()
+
+        # client connect and init
+        self.address = client_address
+        self.conn_socket = client_socket
+        print(f"Connection established with {client_address}.")
+        return
 
 
 class DnsRequest(object):
@@ -142,11 +131,12 @@ class DnsRequest(object):
 if __name__ == '__main__':
     # read input
     topo_dir, log_path, alpha, listen_port, fake_ip, dns_server_port = sys.argv[1:]
-    server_ip = dns_request("video.columbia.edu")
+    # server_ip = dns_request("video.columbia.edu")
+    server_ip = '127.0.0.1'
     log = Logger(log_path)
     # proxy init
     proxy = Proxy(int(listen_port), server_ip, 8080, fake_ip, log, int(alpha))
-
+    proxy.serve()
     
 
 

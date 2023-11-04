@@ -17,18 +17,25 @@ class Proxy(object):
                  server_port: int = None,
                  fake_ip: str = None,
                  log_path: str = None,
-                 alpha: int = None):
+                 alpha: int = None,
+                 dns_server_port: int = None):
         
         self.logging = Logger(log_path)
         self.alpha = alpha
-        self.client_conn = Connection()
-        self.client_conn.listen_to_connection(listen_port)
-        self.server_conn = Connection()
-        self.server_conn.connect_to_server(server_ip, server_port, fake_ip)
+        self.dns_request("127.0.0.1", dns_server_port)
+        # self.client_conn = Connection("TCP")
+        # self.client_conn.listen_to_connection(listen_port)
+        # self.server_conn = Connection("TCP")
+        # self.server_conn.connect_to_server(server_ip, server_port, fake_ip)
         return
     
-    def dns_request(self, dns_server_ip, dns_server_port):
-        pass
+    def dns_request(self, dns_server_ip: str, dns_server_port: int):
+        dns_conn = Connection("UDP")
+        dns_conn.set_address(dns_server_ip, dns_server_port)
+        dns_conn.send("dns request test")
+        message, dns_server_address = dns_conn.receive()
+        print(f"Message received from DNS server {dns_server_address}: {message}")
+        return
     
     def serve(self):
 
@@ -61,7 +68,7 @@ if __name__ == '__main__':
     topo_dir, log_path, alpha, listen_port, fake_ip, dns_server_port = sys.argv[1:]
     server_ip = '127.0.0.1'
     # proxy init
-    proxy = Proxy(int(listen_port), server_ip, 8080, fake_ip, log_path, int(alpha))
+    proxy = Proxy(int(listen_port), server_ip, 8080, fake_ip, log_path, int(alpha), int(dns_server_port))
     proxy.serve()
     
 

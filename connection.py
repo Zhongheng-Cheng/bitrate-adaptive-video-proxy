@@ -2,10 +2,18 @@ import socket
 import time
 
 class Connection(object):
-    def __init__(self):
-        pass
+    def __init__(self, type: str):
+        if type == "UDP":
+            self.conn_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.type = type
+        self.address = ('', 0)
+        return
+    
+    def set_address(self, ip: str, port: int):
+        self.address = (ip, port)
+        return
 
-    def bind_socket(self, bind_address):
+    def bind_socket(self, bind_address: tuple):
         '''
         Input:
             bind_address: tuple, (ip, port)
@@ -17,18 +25,30 @@ class Connection(object):
         '''
         Receive a message from conn_socket.
         '''
-        message = self.conn_socket.recv(4096).decode()
-        print(f"Proxy received from {self.address}: {message}")
-        return message
+        if self.type == "TCP":
+            message = self.conn_socket.recv(4096).decode()
+            print(f"Proxy received from {self.address}: {message}")
+            return message
+        
+        elif self.type == "UDP":
+            message, server_address = self.conn_socket.recvfrom(2048)
+            message = message.decode()
+            print(f"Proxy received from {server_address}: {message}")
+            return message, server_address
     
     def send(self, message):
         '''
         Send a message to conn_socket.
         '''
-        self.conn_socket.send(message.encode())
-        return
+        if self.type == "TCP":
+            self.conn_socket.send(message.encode())
+            return
+        
+        elif self.type == "UDP":
+            self.conn_socket.sendto(message.encode(), self.address)
+            return
     
-    def connect_to_server(self, server_ip: str, server_port: int, fake_ip: str):
+    def connect_to_server(self, server_ip: str, server_port: int, fake_ip: str = None):
         '''
         Continuously try to connect server at 1 second interval.
         '''

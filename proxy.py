@@ -62,8 +62,6 @@ class Proxy(object):
     def serve(self):
         self.client_conn = Connection("TCP")
         self.client_conn.listen_to_connection(self.listen_port)
-        # self.server_conn = Connection("TCP")
-        # self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
         while True:
             # try:
             #     # forwarding data between server and client
@@ -86,17 +84,22 @@ class Proxy(object):
             
             message = self.client_conn.receive()
             print("========")
-            response = self.send_dns_request('127.0.0.1', self.dns_server_port)
-            print(response)
-            # self.server_conn.send(message)
+            self.client_connserver_ip = self.send_dns_request('127.0.0.1', self.dns_server_port)
+            self.server_conn = Connection("TCP")
+            self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
+            self.server_conn.send(message)
     
 
 if __name__ == '__main__':
     # read input
     topo_dir, log_path, alpha, listen_port, fake_ip, dns_server_port = sys.argv[1:]
-    server_ip = '127.0.0.1'
     # proxy init
-    proxy = Proxy(int(listen_port), server_ip, 8080, fake_ip, log_path, eval(alpha), int(dns_server_port))
+    proxy = Proxy(listen_port=int(listen_port), 
+                  server_port=8080, 
+                  fake_ip=fake_ip, 
+                  log_path=log_path, 
+                  alpha=eval(alpha), 
+                  dns_server_port=int(dns_server_port))
     proxy.serve()
     
 

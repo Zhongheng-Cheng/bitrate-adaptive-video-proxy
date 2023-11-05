@@ -76,7 +76,6 @@ class Proxy(object):
         self.client_conn.listen_to_connection(self.listen_port)
         self.server_ip = self.send_dns_request('127.0.0.1', self.dns_server_port)
         self.server_conn = Connection("TCP")
-        print(f"Connecting to server at {self.server_ip}:{self.server_port}...")
         self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
         while True:
             try:

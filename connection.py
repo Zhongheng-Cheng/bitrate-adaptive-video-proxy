@@ -27,13 +27,11 @@ class Connection(object):
         '''
         if self.type == "TCP":
             message = self.conn_socket.recv(4096).decode()
-            print(f"Proxy received from {self.address}: {message}")
             return message
         
         elif self.type == "UDP":
             message, server_address = self.conn_socket.recvfrom(2048)
             message = message
-            print(f"Proxy received from {server_address}: {message}")
             return message, server_address
     
     def send(self, message):
@@ -52,13 +50,13 @@ class Connection(object):
         '''
         Continuously try to connect server at 1 second interval.
         '''
-        print("Connecting to server...")
         while True:
             try:
                 self.conn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 if fake_ip:
                     self.bind_socket((fake_ip, 0))
                 self.address = (server_ip, server_port)
+                print(f"Connecting to server at {self.address}")
                 self.conn_socket.connect(self.address)
                 break
             except ConnectionRefusedError:

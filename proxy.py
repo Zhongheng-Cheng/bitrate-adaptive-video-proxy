@@ -60,26 +60,29 @@ class Proxy(object):
         return server_ip
     
     def serve(self):
-        self.client_conn = Connection("TCP")
-        self.client_conn.listen_to_connection(self.listen_port)
-        self.server_ip = self.send_dns_request('127.0.0.1', self.dns_server_port)
-        self.server_conn = Connection("TCP")
-        self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
+        # self.client_conn = Connection("TCP")
+        # self.client_conn.listen_to_connection(self.listen_port)
+        # self.server_ip = self.send_dns_request('127.0.0.1', self.dns_server_port)
+        # self.server_conn = Connection("TCP")
+        # self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
         while True:
             try:
-                # forwarding data between server and client
-                message = self.client_conn.receive()
-                if not message:
-                    raise
-                print("========")
-                self.server_conn.send(message)
+                # # forwarding data between server and client
+                # message = self.client_conn.receive()
+                # if not message:
+                #     raise
+                # print("========")
+                # self.server_conn.send(message)
+
+                self.send_dns_request('127.0.0.1', self.dns_server_port) ###
+                time.sleep(5) ###
 
             except:
                 print("Connection closed")
 
                 # close connection from both sides
                 self.client_conn.close()
-                self.server_conn.close()
+                # self.server_conn.close()
 
                 # connect client and then server
                 self.client_conn = Connection("TCP")

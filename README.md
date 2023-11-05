@@ -21,7 +21,7 @@
 python proxy.py ../topos/topo1 proxy1_log.txt 0.5 8011 127.0.0.1 53
 
 # dns_server.py: topo_dir, log_path, listen_port, decision_method
-python dns_server.py ../topos/topo1 dns_log.txt 53 xx
+python dns_server.py ../topos/topo1 dns_log.txt 53 round-robin
 
 # dig
 dig @localhost video.columbia.edu

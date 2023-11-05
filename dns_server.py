@@ -68,7 +68,6 @@ class DnsServer(object):
             latency = randint(1, 100) # TODO: measure the latency of each available server ip
             self.logger.log(f'measurement-report {i} {latency}')
             self.ip_book.latencies[i] = latency
-        print(self.ip_book.latencies)
         return
 
     def handle_dns_request(self, data, client_address):
@@ -122,7 +121,7 @@ class DnsServer(object):
             try:
                 self.measure_latency()
                 data, client_address = self.server_socket.recvfrom(1024)
-                print(f"Received DNS request from {client_address}: {data}")
+                print(f"Received DNS request from {client_address}")
                 self.handle_dns_request(data, client_address)
             except socket.timeout:
                 pass

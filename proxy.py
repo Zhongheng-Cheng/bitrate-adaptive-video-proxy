@@ -34,8 +34,9 @@ class Proxy(object):
         dns_conn.set_address(dns_server_ip, dns_server_port)
         dns_conn.send(self.make_dns_request_message())
         response, dns_server_address = dns_conn.receive()
-        print(f"Message received from DNS server {dns_server_address}: {response}")
-        response = self.parse_response(response)
+        print(f"Message received from DNS server {dns_server_address}")
+        response = self.parse_dns_response(response)
+        print(f"Message content: {response}")
         return response
     
     def make_dns_request_message(self):
@@ -53,36 +54,50 @@ class Proxy(object):
         )
         return message
     
-    def parse_response(self, response):
+    def parse_dns_response(self, response):
         server_ip = ''
         if len(response) == 52:
             server_ip = '.'.join([str(i) for i in list(response[-4:])])
         return server_ip
     
+    def get_content_length(self, data):
+        '''
+        Parse the received data and return the "Content-Length" parameter.
+        '''
+        pass # TODO: parse HTTP response and return the "Conetent-Length" parameter.
+
+    def throughput_cal(self, ts, tf, B, alpha):
+        tput = B / (tf - ts)
+        self.throughput = alpha * tput + (1 - alpha) * self.throughput # TODO: initialize self.throughput
+        return tput
+    
     def serve(self):
-        # self.client_conn = Connection("TCP")
-        # self.client_conn.listen_to_connection(self.listen_port)
-        # self.server_ip = self.send_dns_request('127.0.0.1', self.dns_server_port)
-        # self.server_conn = Connection("TCP")
-        # self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
+        self.client_conn = Connection("TCP")
+        self.client_conn.listen_to_connection(self.listen_port)
+        self.server_ip = self.send_dns_request('127.0.0.1', self.dns_server_port)
+        self.server_conn = Connection("TCP")
+        print(f"Connecting to server at {self.server_ip}:{self.server_port}...")
+        self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
         while True:
             try:
-                # # forwarding data between server and client
-                # message = self.client_conn.receive()
-                # if not message:
-                #     raise
-                # print("========")
-                # self.server_conn.send(message)
+                # TODO: throughput_cal()
 
-                self.send_dns_request('127.0.0.1', self.dns_server_port) ###
-                time.sleep(5) ###
+                # forwarding data between server and client
+                message = self.client_conn.receive()
+                if not message:
+                    raise
+                print("========")
+                self.server_conn.send(message)
+
+                # self.send_dns_request('127.0.0.1', self.dns_server_port) ###
+                # time.sleep(5) ###
 
             except:
                 print("Connection closed")
 
                 # close connection from both sides
                 self.client_conn.close()
-                # self.server_conn.close()
+                self.server_conn.close()
 
                 # connect client and then server
                 self.client_conn = Connection("TCP")

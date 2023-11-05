@@ -24,5 +24,5 @@ python proxy.py ../topos/topo1 proxy1_log.txt 0.5 8011 127.0.0.1 53
 python dns_server.py ../topos/topo1 dns_log.txt 53 xx
 
 # dig
-dig @localhost video.colmbia.edu
+dig @localhost video.columbia.edu
 ```

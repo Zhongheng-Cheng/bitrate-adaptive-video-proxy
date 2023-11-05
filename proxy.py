@@ -84,10 +84,11 @@ class Proxy(object):
             
             message = self.client_conn.receive()
             print("========")
-            self.client_connserver_ip = self.send_dns_request('127.0.0.1', self.dns_server_port)
-            self.server_conn = Connection("TCP")
-            self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
-            self.server_conn.send(message)
+            self.server_ip = self.send_dns_request('127.0.0.1', self.dns_server_port)
+            print(self.server_ip)
+            # self.server_conn = Connection("TCP")
+            # self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
+            # self.server_conn.send(message)
     
 
 if __name__ == '__main__':

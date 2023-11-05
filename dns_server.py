@@ -4,11 +4,10 @@ import sys
 
 class DnsServer(object):
     def __init__(self):
-        self.dns_records = {
-            b'\x05video\x08columbia\x03edu': '1.1.1.1', # point to the "best" server's ip
-        }
+        self.dns_records = [b'\x05video\x08columbia\x03edu']
         topo_dir, log_path, listen_port, decision_method = self.get_inputs()
         self.server_socket = self.listen_to_connection(int(listen_port))
+        self.topo_dir = topo_dir
         return
     
     def get_inputs(self):
@@ -23,6 +22,18 @@ class DnsServer(object):
         server_socket.bind(('0.0.0.0', listen_port))
         print(f"DNS server listening on 0.0.0.0:{listen_port}")
         return server_socket
+    
+    def get_ip_list(self) -> list:
+        with open(f"{self.topo_dir}/{self.topo_dir[-5:]}.servers", 'r') as fo:
+            content = fo.readlines()
+        ip_list = [i.strip() for i in content]
+        return ip_list
+    
+    def get_best_ip(self) -> str:
+        ip_list = self.get_ip_list()
+        # TODO: Choose the "BEST" server ip
+        best_ip = ip_list[0] ### temp
+        return best_ip
 
     def handle_dns_request(self, data, client_address):
         # Parse the DNS request
@@ -43,7 +54,7 @@ class DnsServer(object):
                 b'\x00\x01' +                       # CLASS = 1
                 b'\x00\x00\x00\x00' +               # TTL = 0
                 b'\x00\x04' +                       # RDLENGTH = 4
-                self.ip_to_hex(self.dns_records[domain_name])
+                self.ip_to_hex(self.get_best_ip())
             )
         else:
             response = (
@@ -71,7 +82,6 @@ class DnsServer(object):
             data, client_address = self.server_socket.recvfrom(1024)
             print(f"Received DNS request from {client_address}: {data}")
             self.handle_dns_request(data, client_address)
-
 
 if __name__ == '__main__':
     dns_server = DnsServer()

@@ -62,34 +62,31 @@ class Proxy(object):
     def serve(self):
         self.client_conn = Connection("TCP")
         self.client_conn.listen_to_connection(self.listen_port)
+        self.server_ip = self.send_dns_request('127.0.0.1', self.dns_server_port)
+        self.server_conn = Connection("TCP")
+        self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
         while True:
-            # try:
-            #     # forwarding data between server and client
-            #     proxy.receive_from(proxy.client)
-            #     proxy.send_to(proxy.server)
-            #     proxy.receive_from(proxy.server)
-            #     proxy.send_to(proxy.client)
+            try:
+                # forwarding data between server and client
+                message = self.client_conn.receive()
+                if not message:
+                    raise
+                print("========")
+                self.server_conn.send(message)
 
-            # except:
-            #     print("Connection closed")
+            except:
+                print("Connection closed")
 
-            #     # close connection from both sides
-            #     proxy.client.conn_socket.close()
-            #     proxy.server.conn_socket.close()
+                # close connection from both sides
+                self.client_conn.close()
+                self.server_conn.close()
 
-            #     # connect client and then server
-            #     proxy.listen_to_connection()
-            #     proxy.connect_to_server(server_ip, fake_ip)
-
-            
-            message = self.client_conn.receive()
-            print("========")
-            self.server_ip = self.send_dns_request('127.0.0.1', self.dns_server_port)
-            print(self.server_ip)
-            # self.server_conn = Connection("TCP")
-            # self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
-            # self.server_conn.send(message)
-    
+                # connect client and then server
+                self.client_conn = Connection("TCP")
+                self.client_conn.listen_to_connection(self.listen_port)
+                self.server_ip = self.send_dns_request('127.0.0.1', self.dns_server_port)
+                self.server_conn = Connection("TCP")
+                self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
 
 if __name__ == '__main__':
     # read input

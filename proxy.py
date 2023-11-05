@@ -17,25 +17,40 @@ class Proxy(object):
                  server_port: int = None,
                  fake_ip: str = None,
                  log_path: str = None,
-                 alpha: int = None,
+                 alpha: float = None,
                  dns_server_port: int = None):
         
         self.logging = Logger(log_path)
         self.alpha = alpha
-        self.dns_request("127.0.0.1", dns_server_port)
-        self.client_conn = Connection("TCP")
-        self.client_conn.listen_to_connection(listen_port)
-        self.server_conn = Connection("TCP")
-        self.server_conn.connect_to_server(server_ip, server_port, fake_ip)
+        self.dns_server_port = dns_server_port
+        self.listen_port = listen_port
+        self.server_ip = server_ip
+        self.server_port = server_port
+        self.fake_ip = fake_ip
         return
     
-    def dns_request(self, dns_server_ip: str, dns_server_port: int):
+    def send_dns_request(self, dns_server_ip: str, dns_server_port: int):
         dns_conn = Connection("UDP")
         dns_conn.set_address(dns_server_ip, dns_server_port)
-        dns_conn.send("dns request test")
-        message, dns_server_address = dns_conn.receive()
-        print(f"Message received from DNS server {dns_server_address}: {message}")
-        return
+        dns_conn.send(self.make_dns_request_message())
+        response, dns_server_address = dns_conn.receive()
+        print(f"Message received from DNS server {dns_server_address}: {response}")
+        return response
+    
+    def make_dns_request_message(self):
+        domain_name = b'\x05video\x08columbia\x03edu'
+        message = (
+            b'\x23\x33' +           # transaction ID
+            b'\x80\x00' +           # flags: QR = 1, Opcode, AA, TC, RD, RA, Z, RCODE
+            b'\x00\x01' +           # QDCOUNT = 1
+            b'\x00\x00' +           # ANCOUNT = 0
+            b'\x00\x00' +           # NSCOUNT = 0
+            b'\x00\x00' +           # ARCOUNT = 0
+            domain_name + b'\x00' + # domain_name
+            b'\x00\x01' +           # QTYPE = 1
+            b'\x00\x01'             # QCLASS = 1
+        )
+        return message
     
     def serve(self):
 
@@ -58,9 +73,14 @@ class Proxy(object):
             #     proxy.listen_to_connection()
             #     proxy.connect_to_server(server_ip, fake_ip)
 
+            self.client_conn = Connection("TCP")
+            self.client_conn.listen_to_connection(self.listen_port)
             message = self.client_conn.receive()
             print("========")
-            self.server_conn.send(message)
+            response = self.send_dns_request('127.0.0.1', self.dns_server_port)
+            # self.server_conn = Connection("TCP")
+            # self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
+            # self.server_conn.send(message)
     
 
 if __name__ == '__main__':
@@ -68,7 +88,7 @@ if __name__ == '__main__':
     topo_dir, log_path, alpha, listen_port, fake_ip, dns_server_port = sys.argv[1:]
     server_ip = '127.0.0.1'
     # proxy init
-    proxy = Proxy(int(listen_port), server_ip, 8080, fake_ip, log_path, int(alpha), int(dns_server_port))
+    proxy = Proxy(int(listen_port), server_ip, 8080, fake_ip, log_path, eval(alpha), int(dns_server_port))
     proxy.serve()
     
 

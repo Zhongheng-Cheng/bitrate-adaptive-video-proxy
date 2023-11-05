@@ -32,7 +32,7 @@ class Connection(object):
         
         elif self.type == "UDP":
             message, server_address = self.conn_socket.recvfrom(2048)
-            message = message.decode()
+            message = message
             print(f"Proxy received from {server_address}: {message}")
             return message, server_address
     
@@ -45,7 +45,7 @@ class Connection(object):
             return
         
         elif self.type == "UDP":
-            self.conn_socket.sendto(message.encode(), self.address)
+            self.conn_socket.sendto(message, self.address)
             return
     
     def connect_to_server(self, server_ip: str, server_port: int, fake_ip: str = None):

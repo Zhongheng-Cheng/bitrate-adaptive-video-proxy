@@ -63,6 +63,7 @@ class Connection(object):
                 time.sleep(1)
             except Exception as e:
                 print(e)
+                time.sleep(10)
         print("Successfully connected to server.")
         return
     

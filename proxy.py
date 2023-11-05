@@ -35,6 +35,7 @@ class Proxy(object):
         dns_conn.send(self.make_dns_request_message())
         response, dns_server_address = dns_conn.receive()
         print(f"Message received from DNS server {dns_server_address}: {response}")
+        response = self.parse_response(response)
         return response
     
     def make_dns_request_message(self):
@@ -52,8 +53,17 @@ class Proxy(object):
         )
         return message
     
+    def parse_response(self, response):
+        server_ip = ''
+        if len(response) == 52:
+            server_ip = '.'.join([str(i) for i in list(response[-4:])])
+        return server_ip
+    
     def serve(self):
-
+        self.client_conn = Connection("TCP")
+        self.client_conn.listen_to_connection(self.listen_port)
+        # self.server_conn = Connection("TCP")
+        # self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
         while True:
             # try:
             #     # forwarding data between server and client
@@ -73,13 +83,11 @@ class Proxy(object):
             #     proxy.listen_to_connection()
             #     proxy.connect_to_server(server_ip, fake_ip)
 
-            self.client_conn = Connection("TCP")
-            self.client_conn.listen_to_connection(self.listen_port)
+            
             message = self.client_conn.receive()
             print("========")
             response = self.send_dns_request('127.0.0.1', self.dns_server_port)
-            # self.server_conn = Connection("TCP")
-            # self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
+            print(response)
             # self.server_conn.send(message)
     
 

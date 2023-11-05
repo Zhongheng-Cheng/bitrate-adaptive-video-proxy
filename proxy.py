@@ -23,10 +23,10 @@ class Proxy(object):
         self.logging = Logger(log_path)
         self.alpha = alpha
         self.dns_request("127.0.0.1", dns_server_port)
-        # self.client_conn = Connection("TCP")
-        # self.client_conn.listen_to_connection(listen_port)
-        # self.server_conn = Connection("TCP")
-        # self.server_conn.connect_to_server(server_ip, server_port, fake_ip)
+        self.client_conn = Connection("TCP")
+        self.client_conn.listen_to_connection(listen_port)
+        self.server_conn = Connection("TCP")
+        self.server_conn.connect_to_server(server_ip, server_port, fake_ip)
         return
     
     def dns_request(self, dns_server_ip: str, dns_server_port: int):

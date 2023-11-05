@@ -1,6 +1,7 @@
 #!/usr/bin/env python3.10
 import socket
 import sys
+from logger import Logger
 
 class DnsServer(object):
     def __init__(self):
@@ -8,6 +9,8 @@ class DnsServer(object):
         topo_dir, log_path, listen_port, decision_method = self.get_inputs()
         self.server_socket = self.listen_to_connection(int(listen_port))
         self.topo_dir = topo_dir
+        self.logger = Logger(log_path)
+        self.decision_method = decision_method
         return
     
     def get_inputs(self):
@@ -39,6 +42,7 @@ class DnsServer(object):
         # Parse the DNS request
         domain_name = data[12:].split(b'\x00', 1)[0]
         if domain_name in self.dns_records:
+            server_ip = self.get_best_ip()
             response = (
                 data[:2] +                          # transaction ID
                 b'\x84\x00' +                       # flags: QR = 1, Opcode, AA = 1, TC, RD, RA, Z, RCODE  
@@ -54,8 +58,9 @@ class DnsServer(object):
                 b'\x00\x01' +                       # CLASS = 1
                 b'\x00\x00\x00\x00' +               # TTL = 0
                 b'\x00\x04' +                       # RDLENGTH = 4
-                self.ip_to_hex(self.get_best_ip())
+                self.ip_to_hex(server_ip)
             )
+            self.logger.log(f'"request-report" {self.decision_method} {server_ip}')
         else:
             response = (
                 data[:2] +                          # transaction ID

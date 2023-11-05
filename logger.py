@@ -1,3 +1,5 @@
+import time
+
 class Logger(object):
     def __init__(self, filepath):
         '''
@@ -7,9 +9,12 @@ class Logger(object):
             After each measurement to the web server: <time> "measurement-report" <video-server-ip> <latency>
         '''
         self.filepath = filepath
+        with open(self.filepath, 'w') as fo:
+            fo.seek(0)
+            fo.truncate()
         return
 
-    def log(self):
+    def log(self, content):
         with open(self.filepath, 'a') as fo:
-            fo.write("logging...\n")
+            fo.write(f"{time.time()} {content}\n")
         return

@@ -27,6 +27,7 @@ class Proxy(object):
         self.server_ip = server_ip
         self.server_port = server_port
         self.fake_ip = fake_ip
+        self.avg_tput = 10000 # TODO: modify
         return
     
     def send_dns_request(self, dns_server_ip: str, dns_server_port: int):
@@ -59,23 +60,11 @@ class Proxy(object):
         if len(response) == 52:
             server_ip = '.'.join([str(i) for i in list(response[-4:])])
         return server_ip
-    
-    # def get_content_length(self, http_response):
-    #     '''
-    #     Parse the received data and return the "Content-Length" parameter.
-    #     '''
-    #     content_length_match = re.search(r'Content-Length: (\d+)', http_response)
-    #     if content_length_match:
-    #         content_length = int(content_length_match.group(1))
-    #         return content_length
-    #     else:
-    #         print("Content-Length header not found in the response.")
-    #         return
 
     def throughput_cal(self, ts, tf, B, alpha):
-        tput = B / (tf - ts)
-        self.throughput = alpha * tput + (1 - alpha) * self.throughput # TODO: initialize self.throughput
-        return tput
+        current_tput = B / (tf - ts)
+        self.avg_tput = alpha * current_tput + (1 - alpha) * self.avg_tput # TODO: initialize self.throughput
+        return current_tput
 
     def bitrate_select(self):
         bitrate = None # TODO: select appropriate bitrate
@@ -88,12 +77,6 @@ class Proxy(object):
     def replace_nolist(self, message: str):
         new_message = re.sub('BigBuckBunny_6s.mpd', 'BigBuckBunny_6s_nolist.mpd', message)
         return new_message
-    
-    # def contains_6s(self, message: str):
-    #     # if re.search("BigBuckBunny_6s.mpd", message):
-    #     if "BigBuckBunny_6s.mpd" in message:
-    #         return True
-    #     return False
 
     def process_header(self, header):
         if "BigBuckBunny_6s.mpd" in header:
@@ -117,17 +100,25 @@ class Proxy(object):
         while True:
             try:
                 # TODO: throughput_cal()
-
+                
                 # forwarding data between server and client
-                self.logger.log("Starting forwarding data") ###
+                # self.logger.log("Starting forwarding data") ###
                 request_header, request_payload = self.client_conn.receive()
-                self.logger.log("Message received from client: %s" % request_header.split('\n')[0]) ###
+                # self.logger.log("Message received from client: %s" % request_header.split('\n')[0]) ###
                 modified_header = self.process_header(request_header)
-                self.logger.log("Header modified: %s" % modified_header.split('\n')[0]) ###
+                ts = time.time()
+                # self.logger.log("Header modified: %s" % modified_header.split('\n')[0]) ###
                 self.server_conn.send(modified_header.encode() + b'\r\n\r\n' + request_payload)
                 response_header, response_payload, content_length = self.server_conn.receive_http_response()
-                self.logger.log(f"Response received from server, content_length: {content_length}, payload_length: {len(response_payload)}") ###
+                # self.logger.log(f"Response received from server, content_length: {content_length}, payload_length: {len(response_payload)}") ###
                 self.client_conn.send(response_header.encode() + b'\r\n\r\n' + response_payload)
+                tf = time.time()
+                current_tput = self.throughput_cal(ts, tf, int(content_length), self.alpha)
+                chunkname = re.search(r'GET (\S+) ', modified_header).group(1)
+                bitrate_match = re.search(r'bunny_(\d+)bps', modified_header)
+                if bitrate_match:
+                    self.logger.log(f"{tf - ts} {current_tput / 1000} {self.avg_tput / 1000} {bitrate_match.group(1)} {self.server_ip} {chunkname}")
+
             except TimeoutError:
                 pass
             # except TypeError:

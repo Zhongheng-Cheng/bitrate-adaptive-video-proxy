@@ -20,7 +20,7 @@ class Proxy(object):
                  alpha: float = None,
                  dns_server_port: int = None):
         
-        self.logging = Logger(log_path)
+        self.logger = Logger(log_path)
         self.alpha = alpha
         self.dns_server_port = dns_server_port
         self.listen_port = listen_port
@@ -60,17 +60,17 @@ class Proxy(object):
             server_ip = '.'.join([str(i) for i in list(response[-4:])])
         return server_ip
     
-    def get_content_length(self, http_response):
-        '''
-        Parse the received data and return the "Content-Length" parameter.
-        '''
-        content_length_match = re.search(r'Content-Length: (\d+)', http_response)
-        if content_length_match:
-            content_length = int(content_length_match.group(1))
-            return content_length
-        else:
-            print("Content-Length header not found in the response.")
-            return
+    # def get_content_length(self, http_response):
+    #     '''
+    #     Parse the received data and return the "Content-Length" parameter.
+    #     '''
+    #     content_length_match = re.search(r'Content-Length: (\d+)', http_response)
+    #     if content_length_match:
+    #         content_length = int(content_length_match.group(1))
+    #         return content_length
+    #     else:
+    #         print("Content-Length header not found in the response.")
+    #         return
 
     def throughput_cal(self, ts, tf, B, alpha):
         tput = B / (tf - ts)
@@ -89,18 +89,18 @@ class Proxy(object):
         new_message = re.sub('BigBuckBunny_6s.mpd', 'BigBuckBunny_6s_nolist.mpd', message)
         return new_message
     
-    def contains_6s(self, message: str):
-        if re.search("BigBuckBunny_6s.mpd", message):
-            return True
-        return False
+    # def contains_6s(self, message: str):
+    #     # if re.search("BigBuckBunny_6s.mpd", message):
+    #     if "BigBuckBunny_6s.mpd" in message:
+    #         return True
+    #     return False
 
     def process_header(self, header):
-        if self.contains_6s(header):
+        if "BigBuckBunny_6s.mpd" in header:
             self.server_conn.send(header.encode() + b'\r\n\r\n')
             header_with_list, payload_with_list = self.server_conn.receive()
             print("++++++++++++++++++++")
-            print(f"Header: {header}")
-            print(f"payload: {payload_with_list.decode()}")
+            print(re.finditer(r'bandwidth="(\d+)"', payload_with_list.decode()))
             print("++++++++++++++++++++")
             # TODO: parse message_with_list to get bitrate list
             header = self.replace_nolist(header)
@@ -119,21 +119,21 @@ class Proxy(object):
                 # TODO: throughput_cal()
 
                 # forwarding data between server and client
-                print("Starting forwarding data")
-                header, request_payload = self.client_conn.receive()
-                print(f"Message received from client, header: {header}")
-                print("====================")
-                header = self.process_header(header)
-                print(f"header modified: {header}")
-                print("====================")
-                self.server_conn.send(header.encode() + b'\r\n\r\n' + request_payload)
-                header, response_payload = self.server_conn.receive_http_response()
-                print(f"Response received from server {self.server_ip}, header: {header}")
-                print("====================")
-                self.client_conn.send(header.encode() + b'\r\n\r\n' + response_payload)
+                self.logger.log("Starting forwarding data") ###
+                request_header, request_payload = self.client_conn.receive()
+                self.logger.log("Message received from client: %s" % request_header.split('\n')[0]) ###
+                modified_header = self.process_header(request_header)
+                self.logger.log("Header modified: %s" % modified_header.split('\n')[0]) ###
+                self.server_conn.send(modified_header.encode() + b'\r\n\r\n' + request_payload)
+                response_header, response_payload, content_length = self.server_conn.receive_http_response()
+                self.logger.log(f"Response received from server, content_length: {content_length}, payload_length: {len(response_payload)}") ###
+                self.client_conn.send(response_header.encode() + b'\r\n\r\n' + response_payload)
             except TimeoutError:
                 pass
-            except:
+            # except TypeError:
+            #     self.client_conn.send(b'')
+            except Exception as e:
+                print(e)
                 print("Connection closed")
 
                 # close connection from both sides

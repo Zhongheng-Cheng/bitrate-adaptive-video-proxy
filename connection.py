@@ -38,13 +38,12 @@ class Connection(object):
         content_length = self.get_content_length(response_header)
 
         if content_length is not None:
-            print(f"Content-Length: {content_length}")
             while len(response_payload) < content_length:
                 chunk = self.conn_socket.recv(min(4096, content_length - len(response_payload)))
                 if not chunk:
                     break
                 response_payload += chunk
-        return response_header, response_payload
+        return response_header, response_payload, content_length
     
     def receive(self):
         '''
@@ -52,8 +51,14 @@ class Connection(object):
         '''
         if self.type == "TCP":
             message = self.conn_socket.recv(4096)
-            header, payload = message.split(b'\r\n\r\n')
-            return header.decode(), payload
+            # if message == b'':
+            #     raise TypeError("Empty input")
+            if message:
+                header, payload = message.split(b'\r\n\r\n')
+                return header.decode(), payload
+            else:
+                return b''
+            
         
         elif self.type == "UDP":
             message, server_address = self.conn_socket.recvfrom(2048)
@@ -78,7 +83,7 @@ class Connection(object):
         while True:
             try:
                 self.conn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.conn_socket.settimeout(5)
+                # self.conn_socket.settimeout(5)
                 if fake_ip:
                     self.conn_socket.bind((fake_ip, 0))
                 self.address = (server_ip, server_port)
@@ -110,7 +115,7 @@ class Connection(object):
         # client connect and init
         self.address = client_address
         self.conn_socket = client_socket
-        self.conn_socket.settimeout(5)
+        # self.conn_socket.settimeout(5)
         print(f"Connection established with {client_address}.")
         return
     

@@ -67,11 +67,12 @@ class Proxy(object):
         return current_tput
 
     def bitrate_select(self):
-        bitrate = None # TODO: select appropriate bitrate
-        return bitrate
+        bitrate_options = [int(i) for i in self.bitrate_list if int(i) * 1.5 < self.avg_tput]
+        best_bitrate = max(bitrate_options)
+        return str(best_bitrate)
     
-    def replace_bitrate(self, message: str, bitrate: int):
-        new_message = re.sub(r'(bunny_)\d+(bps)', r"\g<1>" + str(bitrate) + r"\g<2>", message)
+    def replace_bitrate(self, message: str, bitrate: str):
+        new_message = re.sub(r'(bunny_)\d+(bps)', r"\g<1>" + bitrate + r"\g<2>", message)
         return new_message
     
     def replace_nolist(self, message: str):
@@ -91,12 +92,11 @@ class Proxy(object):
             print("++++++++++++++++++++")
             list_iter = re.finditer(r'bandwidth="(\d+)"', payload_with_list.decode())
             self.parse_bitrate_list(list_iter)
-            print(self.bitrate_list)
+            print(f"Parsed bitrate list: {self.bitrate_list}")
             print("++++++++++++++++++++")
-            # TODO: parse message_with_list to get bitrate list
             header = self.replace_nolist(header)
-        # else:
-        #     message = replace_bitrate(message, self.bitrate_select())
+        elif "bps" in header:
+            header = self.replace_bitrate(header, self.bitrate_select())
         return header
     
     def serve(self):

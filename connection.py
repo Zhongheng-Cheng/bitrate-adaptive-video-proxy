@@ -12,14 +12,6 @@ class Connection(object):
     def set_address(self, ip: str, port: int):
         self.address = (ip, port)
         return
-
-    def bind_socket(self, bind_address: tuple):
-        '''
-        Input:
-            bind_address: tuple, (ip, port)
-        '''
-        self.conn_socket.bind(bind_address)
-        return
     
     def receive(self):
         '''
@@ -54,7 +46,7 @@ class Connection(object):
             try:
                 self.conn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 if fake_ip:
-                    self.bind_socket((fake_ip, 0))
+                    self.conn_socket.bind((fake_ip, 0))
                 self.address = (server_ip, server_port)
                 print(f"Connecting to server at {self.address}")
                 self.conn_socket.connect(self.address)

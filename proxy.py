@@ -85,6 +85,28 @@ class Proxy(object):
         new_message = re.sub(r'(bunny_)\d+(bps)', r"\g<1>" + str(bitrate) + r"\g<2>", message)
         return new_message
     
+    def replace_nolist(self, message: str):
+        new_message = re.sub('BigBuckBunny_6s.mpd', 'BigBuckBunny_6s_nolist.mpd', message)
+        return new_message
+    
+    def contains_6s(self, message: str):
+        if re.search("BigBuckBunny_6s.mpd", message):
+            return True
+        return False
+
+    def process_header(self, header):
+        # if self.contains_6s(header):
+        #     self.server_conn.send(header.encode + b'\r\n\r\n' + payload)
+        #     header_with_list, payload_with_list = self.server_conn.receive()
+        #     print("++++++++++++++++++++")
+        #     print(f"Header: {header.decode()}")
+        #     print(f"payload: {payload_with_list.decode()}")
+        #     # TODO: parse message_with_list to get bitrate list
+        #     header = replace_nolist(header)
+        # else:
+        #     message = replace_bitrate(message, self.bitrate_select())
+        return header
+    
     def serve(self):
         self.client_conn = Connection("TCP")
         self.client_conn.listen_to_connection(self.listen_port)
@@ -97,16 +119,19 @@ class Proxy(object):
 
                 # forwarding data between server and client
                 print("Starting forwarding data")
-                message = self.client_conn.receive()
-                if not message:
-                    raise
-                print("========")
-                # TODO: modifying bitrate information
-                self.server_conn.send(message)
-                response = self.server_conn.receive()
-                print(f"Response received from server {self.server_ip}: {response}")
-                self.client_conn.send(response)
-
+                header, request_payload = self.client_conn.receive()
+                print(f"Message received from client, header: {header}")
+                print("====================")
+                header = self.process_header(header)
+                print(f"header modified: {header}")
+                print("====================")
+                self.server_conn.send(header.encode() + b'\r\n\r\n' + request_payload)
+                header, response_payload = self.server_conn.receive_http_response()
+                print(f"Response received from server {self.server_ip}, header: {header}")
+                print("====================")
+                self.client_conn.send(header.encode() + b'\r\n\r\n' + response_payload)
+            except TimeoutError:
+                pass
             except:
                 print("Connection closed")
 

@@ -1,5 +1,6 @@
 import socket
 import time
+import re
 
 class Connection(object):
     def __init__(self, type: str):
@@ -13,17 +14,49 @@ class Connection(object):
         self.address = (ip, port)
         return
     
+    def receive_http_header(self, socket_connection):
+        response_header = b""
+        while True:
+            chunk = socket_connection.recv(4096)
+            response_header += chunk
+            if b'\r\n\r\n' in response_header:
+                break
+        header, payload = response_header.split(b'\r\n\r\n')
+        return header.decode(), payload
+
+    def get_content_length(self, http_header):
+        # Use regular expressions to extract the Content-Length value
+        content_length_match = re.search(r'Content-Length: (\d+)', http_header)
+        if content_length_match:
+            return int(content_length_match.group(1))
+        else:
+            return None
+
+    def receive_http_response(self):
+
+        response_header, response_payload = self.receive_http_header(self.conn_socket)
+        content_length = self.get_content_length(response_header)
+
+        if content_length is not None:
+            print(f"Content-Length: {content_length}")
+            while len(response_payload) < content_length:
+                chunk = self.conn_socket.recv(min(4096, content_length - len(response_payload)))
+                if not chunk:
+                    break
+                response_payload += chunk
+        return response_header, response_payload
+    
     def receive(self):
         '''
         Receive a message from conn_socket.
         '''
         if self.type == "TCP":
-            message = self.conn_socket.recv(4096).decode()
-            return message
+            message = self.conn_socket.recv(4096)
+            header, payload = message.split(b'\r\n\r\n')
+            return header.decode(), payload
         
         elif self.type == "UDP":
             message, server_address = self.conn_socket.recvfrom(2048)
-            message = message
             return message, server_address
     
     def send(self, message):
@@ -31,7 +64,7 @@ class Connection(object):
         Send a message to conn_socket.
         '''
         if self.type == "TCP":
-            self.conn_socket.send(message.encode())
+            self.conn_socket.send(message)
             return
         
         elif self.type == "UDP":
@@ -45,6 +78,7 @@ class Connection(object):
         while True:
             try:
                 self.conn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.conn_socket.settimeout(5)
                 if fake_ip:
                     self.conn_socket.bind((fake_ip, 0))
                 self.address = (server_ip, server_port)
@@ -76,6 +110,7 @@ class Connection(object):
         # client connect and init
         self.address = client_address
         self.conn_socket = client_socket
+        self.conn_socket.settimeout(5)
         print(f"Connection established with {client_address}.")
         return
     

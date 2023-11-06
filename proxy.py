@@ -60,11 +60,17 @@ class Proxy(object):
             server_ip = '.'.join([str(i) for i in list(response[-4:])])
         return server_ip
     
-    def get_content_length(self, data):
+    def get_content_length(self, http_response):
         '''
         Parse the received data and return the "Content-Length" parameter.
         '''
-        pass # TODO: parse HTTP response and return the "Conetent-Length" parameter.
+        content_length_match = re.search(r'Content-Length: (\d+)', http_response)
+        if content_length_match:
+            content_length = int(content_length_match.group(1))
+            return content_length
+        else:
+            print("Content-Length header not found in the response.")
+            return
 
     def throughput_cal(self, ts, tf, B, alpha):
         tput = B / (tf - ts)
@@ -82,14 +88,16 @@ class Proxy(object):
                 # TODO: throughput_cal()
 
                 # forwarding data between server and client
+                print("Starting forwarding data")
                 message = self.client_conn.receive()
                 if not message:
                     raise
                 print("========")
+                # TODO: modifying bitrate information
                 self.server_conn.send(message)
-
-                # self.send_dns_request('127.0.0.1', self.dns_server_port) ###
-                # time.sleep(5) ###
+                response = self.server_conn.receive()
+                print(f"Response received from server {self.server_ip}: {response}")
+                self.client_conn.send(response)
 
             except:
                 print("Connection closed")

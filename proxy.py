@@ -95,14 +95,15 @@ class Proxy(object):
         return False
 
     def process_header(self, header):
-        # if self.contains_6s(header):
-        #     self.server_conn.send(header.encode + b'\r\n\r\n' + payload)
-        #     header_with_list, payload_with_list = self.server_conn.receive()
-        #     print("++++++++++++++++++++")
-        #     print(f"Header: {header.decode()}")
-        #     print(f"payload: {payload_with_list.decode()}")
-        #     # TODO: parse message_with_list to get bitrate list
-        #     header = replace_nolist(header)
+        if self.contains_6s(header):
+            self.server_conn.send(header.encode() + b'\r\n\r\n')
+            header_with_list, payload_with_list = self.server_conn.receive()
+            print("++++++++++++++++++++")
+            print(f"Header: {header}")
+            print(f"payload: {payload_with_list.decode()}")
+            print("++++++++++++++++++++")
+            # TODO: parse message_with_list to get bitrate list
+            header = self.replace_nolist(header)
         # else:
         #     message = replace_bitrate(message, self.bitrate_select())
         return header

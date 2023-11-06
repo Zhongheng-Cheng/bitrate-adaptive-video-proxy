@@ -77,13 +77,21 @@ class Proxy(object):
     def replace_nolist(self, message: str):
         new_message = re.sub('BigBuckBunny_6s.mpd', 'BigBuckBunny_6s_nolist.mpd', message)
         return new_message
+    
+    def parse_bitrate_list(self, list_iter):
+        self.bitrate_list = []
+        for i in list_iter:
+            self.bitrate_list.append(i.group(1))
+        return
 
     def process_header(self, header):
         if "BigBuckBunny_6s.mpd" in header:
             self.server_conn.send(header.encode() + b'\r\n\r\n')
             header_with_list, payload_with_list = self.server_conn.receive()
             print("++++++++++++++++++++")
-            print(re.finditer(r'bandwidth="(\d+)"', payload_with_list.decode()))
+            list_iter = re.finditer(r'bandwidth="(\d+)"', payload_with_list.decode())
+            self.parse_bitrate_list(list_iter)
+            print(self.bitrate_list)
             print("++++++++++++++++++++")
             # TODO: parse message_with_list to get bitrate list
             header = self.replace_nolist(header)
@@ -99,25 +107,19 @@ class Proxy(object):
         self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
         while True:
             try:
-                # TODO: throughput_cal()
-                
                 # forwarding data between server and client
-                # self.logger.log("Starting forwarding data") ###
                 request_header, request_payload = self.client_conn.receive()
-                # self.logger.log("Message received from client: %s" % request_header.split('\n')[0]) ###
                 modified_header = self.process_header(request_header)
                 ts = time.time()
-                # self.logger.log("Header modified: %s" % modified_header.split('\n')[0]) ###
                 self.server_conn.send(modified_header.encode() + b'\r\n\r\n' + request_payload)
                 response_header, response_payload, content_length = self.server_conn.receive_http_response()
-                # self.logger.log(f"Response received from server, content_length: {content_length}, payload_length: {len(response_payload)}") ###
-                self.client_conn.send(response_header.encode() + b'\r\n\r\n' + response_payload)
                 tf = time.time()
+                self.client_conn.send(response_header.encode() + b'\r\n\r\n' + response_payload)
                 current_tput = self.throughput_cal(ts, tf, int(content_length), self.alpha)
                 chunkname = re.search(r'GET (\S+) ', modified_header).group(1)
                 bitrate_match = re.search(r'bunny_(\d+)bps', modified_header)
                 if bitrate_match:
-                    self.logger.log(f"{tf - ts} {current_tput / 1000} {self.avg_tput / 1000} {bitrate_match.group(1)} {self.server_ip} {chunkname}")
+                    self.logger.log(f"{tf - ts} {current_tput / 1000} {self.avg_tput / 1000} {int(bitrate_match.group(1)) / 1000} {self.server_ip} {chunkname}")
 
             except TimeoutError:
                 pass

@@ -76,6 +76,14 @@ class Proxy(object):
         tput = B / (tf - ts)
         self.throughput = alpha * tput + (1 - alpha) * self.throughput # TODO: initialize self.throughput
         return tput
+
+    def bitrate_select(self):
+        bitrate = None # TODO: select appropriate bitrate
+        return bitrate
+    
+    def replace_bitrate(self, message: str, bitrate: int):
+        new_message = re.sub(r'(bunny_)\d+(bps)', r"\g<1>" + str(bitrate) + r"\g<2>", message)
+        return new_message
     
     def serve(self):
         self.client_conn = Connection("TCP")
@@ -124,6 +132,3 @@ if __name__ == '__main__':
                   alpha=eval(alpha), 
                   dns_server_port=int(dns_server_port))
     proxy.serve()
-    
-
-

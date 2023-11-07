@@ -111,24 +111,27 @@ class Proxy(object):
         self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
         while True:
             try:
-                # forwarding data between server and client
+                # forwarding data from client to server
                 request_header, request_payload = self.client_conn.receive()
                 modified_header = self.process_header(request_header)
                 ts = time.time()
                 self.server_conn.send(modified_header.encode() + b'\r\n\r\n' + request_payload)
+
+                # forwarding data from server to client
                 response_header, response_payload, content_length = self.server_conn.receive_http_response()
                 tf = time.time()
                 self.client_conn.send(response_header.encode() + b'\r\n\r\n' + response_payload)
+
+                # calculating and logging
                 current_tput = self.throughput_cal(ts, tf, int(content_length), self.alpha)
                 chunkname = re.search(r'GET (\S+) ', modified_header).group(1)
                 bitrate_match = re.search(r'bunny_(\d+)bps', modified_header)
                 if bitrate_match:
                     self.logger.log(f"{tf - ts} {current_tput / 1000} {self.avg_tput / 1000} {int(bitrate_match.group(1)) / 1000} {self.server_ip} {chunkname}")
 
-            except TimeoutError:
-                pass
-            # except TypeError:
-            #     self.client_conn.send(b'')
+            # except TimeoutError:
+            #     pass
+
             except Exception as e:
                 print(e)
                 print("Connection closed")
@@ -137,9 +140,11 @@ class Proxy(object):
                 self.client_conn.close()
                 self.server_conn.close()
 
-                # connect client and then server
+                # connect to client
                 self.client_conn = Connection("TCP")
                 self.client_conn.listen_to_connection(self.listen_port)
+
+                # connect to server
                 self.server_ip = self.send_dns_request(self.dns_server_ip, self.dns_server_port)
                 self.server_conn = Connection("TCP")
                 self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)

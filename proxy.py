@@ -89,9 +89,10 @@ class Proxy(object):
         return
 
     def process_header(self, header):
+        header = header.decode()
         if "BigBuckBunny_6s.mpd" in header:
             self.server_conn.send(header.encode() + b'\r\n\r\n')
-            header_with_list, payload_with_list = self.server_conn.receive()
+            header_with_list, payload_with_list = self.server_conn.receive().split(b'\r\n\r\n')
             print("++++++++++++++++++++")
             list_iter = re.finditer(r'bandwidth="(\d+)"', payload_with_list.decode())
             self.parse_bitrate_list(list_iter)
@@ -112,14 +113,19 @@ class Proxy(object):
         while True:
             try:
                 # forwarding data from client to server
-                request_header, request_payload = self.client_conn.receive()
+                print("#####: Receiving from client...")
+                request_header, request_payload = self.client_conn.receive().split(b'\r\n\r\n')
+                print("#####: Modifying header...")
                 modified_header = self.process_header(request_header)
                 ts = time.time()
+                print("#####: Sending to server...")
                 self.server_conn.send(modified_header.encode() + b'\r\n\r\n' + request_payload)
 
                 # forwarding data from server to client
+                print("#####: Receiving from server...")
                 response_header, response_payload, content_length = self.server_conn.receive_http_response()
                 tf = time.time()
+                print("#####: Sending to client...")
                 self.client_conn.send(response_header.encode() + b'\r\n\r\n' + response_payload)
 
                 # calculating and logging
@@ -182,16 +188,16 @@ class Connection(object):
         self.address = (ip, port)
         return
     
-    def receive_http_header(self, socket_connection):
-        response_header = b""
-        while True:
-            chunk = socket_connection.recv(4096)
-            response_header += chunk
-            if b'\r\n\r\n' in response_header:
-                break
-        header, payload = response_header.split(b'\r\n\r\n')
-        return header.decode(), payload
-
+    def receive_http_header(self):
+            response_header = b""
+            while True:
+                chunk = self.receive()
+                response_header += chunk
+                if b'\r\n\r\n' in response_header:
+                    break
+            header, payload = response_header.split(b'\r\n\r\n')
+            return header.decode(), payload
+    
     def get_content_length(self, http_header):
         # Use regular expressions to extract the Content-Length value
         content_length_match = re.search(r'Content-Length: (\d+)', http_header)
@@ -201,8 +207,7 @@ class Connection(object):
             return None
 
     def receive_http_response(self):
-
-        response_header, response_payload = self.receive_http_header(self.conn_socket)
+        response_header, response_payload = self.receive_http_header()
         content_length = self.get_content_length(response_header)
 
         if content_length is not None:
@@ -221,12 +226,7 @@ class Connection(object):
             message = self.conn_socket.recv(4096)
             if message == b'':
                 raise TypeError("Empty input")
-            if message:
-                header, payload = message.split(b'\r\n\r\n')
-                return header.decode(), payload
-            else:
-                return b''
-            
+            return message
         
         elif self.type == "UDP":
             message, server_address = self.conn_socket.recvfrom(2048)
@@ -251,7 +251,7 @@ class Connection(object):
         while True:
             try:
                 self.conn_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                # self.conn_socket.settimeout(5)
+                self.conn_socket.settimeout(7)
                 if fake_ip:
                     self.conn_socket.bind((fake_ip, 0))
                 self.address = (server_ip, server_port)

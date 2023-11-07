@@ -68,7 +68,7 @@ class DnsServer(object):
     
     def measure_latency(self):
         for ip in self.ip_book.ip_list:
-            ping_output = subprocess.check_output(f'ping -c 1 {ip}', shell=True, universal_newlines=True)
+            ping_output = subprocess.check_output(f'ping -c 1 -I {self.listening_ip} {ip}', shell=True, universal_newlines=True)
             latency = eval(re.search(r'time=(\S+) ms', ping_output).group(1))
             self.logger.log(f'measurement-report {ip} {latency}')
             self.ip_book.latencies[ip] = latency

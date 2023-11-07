@@ -112,48 +112,58 @@ class Proxy(object):
         self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
         while True:
             try:
-                # forwarding data from client to server
+                # receiving message from client and modify header
                 print("#####: Receiving from client...")
                 request_header, request_payload = self.client_conn.receive().split(b'\r\n\r\n')
                 print("#####: Modifying header...")
                 modified_header = self.process_header(request_header)
+
+            except Exception as e:
+                print("Connection with client closed")
+                self.client_conn.close()
+                self.server_conn.close()
+                self.client_conn = Connection("TCP")
+                self.client_conn.listen_to_connection(self.listen_port)
+                self.server_ip = self.send_dns_request(self.dns_server_ip, self.dns_server_port)
+                self.server_conn = Connection("TCP")
+                self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
+                continue
+
+            try:
+                # sending and receiving message with server
                 ts = time.time()
                 print("#####: Sending to server...")
                 self.server_conn.send(modified_header.encode() + b'\r\n\r\n' + request_payload)
-
-                # forwarding data from server to client
                 print("#####: Receiving from server...")
                 response_header, response_payload, content_length = self.server_conn.receive_http_response()
                 tf = time.time()
-                print("#####: Sending to client...")
-                self.client_conn.send(response_header.encode() + b'\r\n\r\n' + response_payload)
-
-                # calculating and logging
-                current_tput = self.throughput_cal(ts, tf, int(content_length), self.alpha)
-                chunkname = re.search(r'GET (\S+) ', modified_header).group(1)
-                bitrate_match = re.search(r'bunny_(\d+)bps', modified_header)
-                if bitrate_match:
-                    self.logger.log(f"{tf - ts} {current_tput / 1000} {self.avg_tput / 1000} {int(bitrate_match.group(1)) / 1000} {self.server_ip} {chunkname}")
-
-            # except TimeoutError:
-            #     pass
 
             except Exception as e:
-                print(e)
-                print("Connection closed")
-
-                # close connection from both sides
-                self.client_conn.close()
+                print("Connection with server closed")
                 self.server_conn.close()
-
-                # connect to client
-                self.client_conn = Connection("TCP")
-                self.client_conn.listen_to_connection(self.listen_port)
 
                 # connect to server
                 self.server_ip = self.send_dns_request(self.dns_server_ip, self.dns_server_port)
                 self.server_conn = Connection("TCP")
                 self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
+
+                # resend request
+                ts = time.time()
+                print("#####: Sending to server...")
+                self.server_conn.send(modified_header.encode() + b'\r\n\r\n' + request_payload)
+                print("#####: Receiving from server...")
+                response_header, response_payload, content_length = self.server_conn.receive_http_response()
+                tf = time.time()
+            
+            print("#####: Sending to client...")
+            self.client_conn.send(response_header.encode() + b'\r\n\r\n' + response_payload)
+
+            # calculating and logging
+            current_tput = self.throughput_cal(ts, tf, int(content_length), self.alpha)
+            chunkname = re.search(r'GET (\S+) ', modified_header).group(1)
+            bitrate_match = re.search(r'bunny_(\d+)bps', modified_header)
+            if bitrate_match:
+                self.logger.log(f"{tf - ts} {current_tput / 1000} {self.avg_tput / 1000} {int(bitrate_match.group(1)) / 1000} {self.server_ip} {chunkname}")
 
 
 class Logger(object):
@@ -199,7 +209,6 @@ class Connection(object):
             return header.decode(), payload
     
     def get_content_length(self, http_header):
-        # Use regular expressions to extract the Content-Length value
         content_length_match = re.search(r'Content-Length: (\d+)', http_header)
         if content_length_match:
             return int(content_length_match.group(1))

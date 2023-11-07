@@ -1,6 +1,8 @@
 #!/usr/bin/env python3.10
 import socket
 import sys
+import subprocess
+import re
 from logger import Logger
 
 class IpBook(object):
@@ -39,6 +41,8 @@ class DnsServer(object):
     def __init__(self):
         self.dns_records = [b'\x05video\x08columbia\x03edu']
         topo_dir, log_path, listen_port, decision_method = self.get_inputs()
+        with open(f"{topo_dir}/{topo_dir[-5:]}.dns", 'r') as fo:
+            self.listening_ip = fo.read().strip()
         self.server_socket = self.listen_to_connection(int(listen_port))
         self.ip_book = IpBook(topo_dir)
         self.logger = Logger(log_path)
@@ -58,16 +62,16 @@ class DnsServer(object):
         '''
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         server_socket.settimeout(3)
-        server_socket.bind(('0.0.0.0', listen_port))
-        print(f"DNS server listening on 0.0.0.0:{listen_port}")
+        server_socket.bind((self.listening_ip, listen_port))
+        print(f"DNS server listening on {self.listening_ip}:{listen_port}")
         return server_socket
     
     def measure_latency(self):
-        for i in self.ip_book.ip_list:
-            from random import randint ###
-            latency = randint(1, 100) # TODO: measure the latency of each available server ip
-            self.logger.log(f'measurement-report {i} {latency}')
-            self.ip_book.latencies[i] = latency
+        for ip in self.ip_book.ip_list:
+            ping_output = subprocess.check_output(f'ping -c 1 {ip}', shell=True, universal_newlines=True)
+            latency = eval(re.search(r'time=(\S+) ms', ping_output).group(1))
+            self.logger.log(f'measurement-report {ip} {latency}')
+            self.ip_book.latencies[ip] = latency
         return
 
     def handle_dns_request(self, data, client_address):

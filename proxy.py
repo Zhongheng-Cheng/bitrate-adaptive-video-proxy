@@ -19,7 +19,9 @@ class Proxy(object):
                  log_path: str = None,
                  alpha: float = None,
                  dns_server_port: int = None):
-        
+
+        with open(f"{topo_dir}/{topo_dir[-5:]}.dns", 'r') as fo:
+            self.dns_server_ip = fo.read().strip()
         self.logger = Logger(log_path)
         self.alpha = alpha
         self.dns_server_port = dns_server_port
@@ -106,7 +108,7 @@ class Proxy(object):
     def serve(self):
         self.client_conn = Connection("TCP")
         self.client_conn.listen_to_connection(self.listen_port)
-        self.server_ip = self.send_dns_request('127.0.0.1', self.dns_server_port)
+        self.server_ip = self.send_dns_request(self.dns_server_ip, self.dns_server_port)
         self.server_conn = Connection("TCP")
         self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
         while True:
@@ -140,7 +142,7 @@ class Proxy(object):
                 # connect client and then server
                 self.client_conn = Connection("TCP")
                 self.client_conn.listen_to_connection(self.listen_port)
-                self.server_ip = self.send_dns_request('127.0.0.1', self.dns_server_port)
+                self.server_ip = self.send_dns_request(self.dns_server_ip, self.dns_server_port)
                 self.server_conn = Connection("TCP")
                 self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
 

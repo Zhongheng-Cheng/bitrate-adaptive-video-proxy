@@ -51,8 +51,8 @@ class Connection(object):
         '''
         if self.type == "TCP":
             message = self.conn_socket.recv(4096)
-            # if message == b'':
-            #     raise TypeError("Empty input")
+            if message == b'':
+                raise TypeError("Empty input")
             if message:
                 header, payload = message.split(b'\r\n\r\n')
                 return header.decode(), payload

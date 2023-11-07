@@ -27,7 +27,7 @@ class Proxy(object):
         self.server_ip = server_ip
         self.server_port = server_port
         self.fake_ip = fake_ip
-        self.avg_tput = 10000 # TODO: modify
+        self.avg_tput = 1000
         return
     
     def send_dns_request(self, dns_server_ip: str, dns_server_port: int):
@@ -68,8 +68,12 @@ class Proxy(object):
 
     def bitrate_select(self):
         bitrate_options = [int(i) for i in self.bitrate_list if int(i) * 1.5 < self.avg_tput]
-        best_bitrate = max(bitrate_options)
-        return str(best_bitrate)
+        if bitrate_options:
+            best_bitrate = max(bitrate_options)
+            return str(best_bitrate)
+        else:
+            print("bitratebitratebitratebitratebitratebitratebitrate") ###
+            return self.bitrate_list[0]
     
     def replace_bitrate(self, message: str, bitrate: str):
         new_message = re.sub(r'(bunny_)\d+(bps)', r"\g<1>" + bitrate + r"\g<2>", message)
@@ -94,6 +98,7 @@ class Proxy(object):
             self.parse_bitrate_list(list_iter)
             print(f"Parsed bitrate list: {self.bitrate_list}")
             print("++++++++++++++++++++")
+            self.avg_tput = int(self.bitrate_list[0]) * 1.5
             header = self.replace_nolist(header)
         elif "bps" in header:
             header = self.replace_bitrate(header, self.bitrate_select())

@@ -63,7 +63,7 @@ class Proxy(object):
 
     def throughput_cal(self, ts, tf, B, alpha):
         current_tput = B / (tf - ts)
-        self.avg_tput = alpha * current_tput + (1 - alpha) * self.avg_tput # TODO: initialize self.throughput
+        self.avg_tput = alpha * current_tput + (1 - alpha) * self.avg_tput
         return current_tput
 
     def bitrate_select(self):
@@ -72,7 +72,6 @@ class Proxy(object):
             best_bitrate = max(bitrate_options)
             return str(best_bitrate)
         else:
-            print("bitratebitratebitratebitratebitratebitratebitrate") ###
             return self.bitrate_list[0]
     
     def replace_bitrate(self, message: str, bitrate: str):

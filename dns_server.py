@@ -3,7 +3,7 @@ import socket
 import sys
 import subprocess
 import re
-from logger import Logger
+import time
 
 class IpBook(object):
     def __init__(self, topo_dir):
@@ -131,6 +131,27 @@ class DnsServer(object):
                 pass
             except Exception as e:
                 print(e)
+
+
+class Logger(object):
+    def __init__(self, filepath):
+        '''
+        Proxy logging: <time> <duration> <tput> <avg-tput> <bitrate> <server-ip> <chunkname>
+        DNS Server logging: 
+            After each response from a client: <time> "request-report" <decision-method> <returned-web-server-ip>
+            After each measurement to the web server: <time> "measurement-report" <video-server-ip> <latency>
+        '''
+        self.filepath = filepath
+        with open(self.filepath, 'w') as fo:
+            fo.seek(0)
+            fo.truncate()
+        return
+
+    def log(self, content):
+        with open(self.filepath, 'a') as fo:
+            fo.write(f"{time.time()} {content}\n")
+        return
+
 
 if __name__ == '__main__':
     dns_server = DnsServer()

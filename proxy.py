@@ -163,7 +163,7 @@ class Proxy(object):
             chunkname = re.search(r'GET (\S+) ', modified_header).group(1)
             bitrate_match = re.search(r'bunny_(\d+)bps', modified_header)
             if bitrate_match:
-                self.logger.log(f"{tf - ts} {current_tput / 1000} {self.avg_tput / 1000} {int(bitrate_match.group(1)) / 1000} {self.server_ip} {chunkname}")
+                self.logger.log(f"{tf - ts} {current_tput / 1000} {self.avg_tput / 1000} {round(int(bitrate_match.group(1)) / 1000)} {self.server_ip} {chunkname}")
 
 
 class Logger(object):

@@ -5,4 +5,5 @@ build/
 __pycache__/
 *.pdf
 *.docx
-
+zc2737.zip
+plot_results/

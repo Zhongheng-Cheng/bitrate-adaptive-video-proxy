@@ -119,16 +119,10 @@ class Proxy(object):
             except Exception as e:
                 print("Connection with client closed")
                 self.client_conn.close()
-                # self.server_conn.close()
                 self.client_conn = Connection("TCP")
                 self.client_conn.listen_to_connection(self.listen_port)
-                # self.server_ip = self.send_dns_request(self.dns_server_ip, self.dns_server_port)
-                # self.server_conn = Connection("TCP")
-                # self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
                 continue
 
-            # try:
-            # sending and receiving message with server
             self.server_ip = self.send_dns_request(self.dns_server_ip, self.dns_server_port)
             self.server_conn = Connection("TCP")
             self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
@@ -138,23 +132,6 @@ class Proxy(object):
             print("#####: Receiving from server...")
             response_header, response_payload, content_length = self.server_conn.receive_http_response()
             tf = time.time()
-
-            # except Exception as e:
-            #     print("Connection with server closed")
-            #     self.server_conn.close()
-
-            #     # connect to server
-            #     self.server_ip = self.send_dns_request(self.dns_server_ip, self.dns_server_port)
-            #     self.server_conn = Connection("TCP")
-            #     self.server_conn.connect_to_server(self.server_ip, self.server_port, self.fake_ip)
-
-            #     # resend request
-            #     ts = time.time()
-            #     print("#####: Sending to server...")
-            #     self.server_conn.send(modified_header.encode() + b'\r\n\r\n' + request_payload)
-            #     print("#####: Receiving from server...")
-            #     response_header, response_payload, content_length = self.server_conn.receive_http_response()
-            #     tf = time.time()
             
             print("#####: Sending to client...")
             self.client_conn.send(response_header.encode() + b'\r\n\r\n' + response_payload)

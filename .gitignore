@@ -3,4 +3,6 @@ build/
 *.spec
 *log*txt
 __pycache__/
+*.pdf
+*.docx
 
